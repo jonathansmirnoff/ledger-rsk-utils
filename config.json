@@ -1,0 +1,9 @@
+{
+    "rskNode": "https://public-node.testnet.rsk.co",
+    "valueToSend": "value",
+    "gas": "0x5208",
+    "to": "to",
+    "data": "",
+    "chainId": 31, 
+    "derivationPath": "44'/37310'/0'/0/0"  
+}
