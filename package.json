@@ -12,6 +12,8 @@
     "ethereumjs-common": "1.5.1",
     "@ledgerhq/hw-transport-node-hid": "5.15.0",
     "@ledgerhq/hw-app-eth": "5.15.0",
+    "@ledgerhq/hw-app-btc": "5.15.1",
+    "@rsksmart/rsk-precompiled-abis": "^2.0.1-WASABI",
     "bn.js": "5.1.1"
   },
   "author": "Jonathan Smirnoff",

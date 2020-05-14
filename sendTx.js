@@ -1,7 +1,7 @@
 const fs = require('fs');
 const Web3 = require('web3');
 const Tx = require('ethereumjs-tx').Transaction;
-const TransportNodeHid = require("@ledgerhq/hw-transport-node-hid").default;
+const Transport = require("@ledgerhq/hw-transport-node-hid").default;
 const AppEth = require("@ledgerhq/hw-app-eth").default;
 const BN = require('bn.js');
 const Common = require('ethereumjs-common').default;
@@ -67,52 +67,45 @@ async function getGasPrice(){
 }
 
 async function getNonce(senderAddress){
-    return await web3.eth.getTransactionCount(senderAddress.toLowerCase(), "pending");
+    const count = await web3.eth.getTransactionCount(senderAddress.toLowerCase(), "pending");    
+    return "0x" + (new BN(count)).toString(16);
 }
 
-async function send(){
-    TransportNodeHid.open("").then(
-        function(transport) {
-            const eth = new AppEth(transport);
-            return eth.getAddress(derivationPath).then(
-                async function(result) {
-                    const senderAddress = result['address'];
-                    const nonce = await getNonce(result['address']);
-                    const gasPrice = await getGasPrice();
-                    
-                    console.log("Sender address: ", senderAddress);
-                    console.log("Gas Price: ", gasPrice);
-                    console.log("Nonce: ", nonce);
-                    console.log("Gas: ", gas);
-                    console.log("To: ", to);
-                    
-                    rawTx = buildTx(to, nonce, gas, gasPrice);
-                    return eth.signTransaction(derivationPath, rawTx.serialize().toString('hex')).then(
-                        async function(result){
-                            rawTx.r = Buffer.from(result['r'], 'hex');
-                            rawTx.v = Buffer.from(result['v'], 'hex');
-                            rawTx.s = Buffer.from(result['s'], 'hex');
-                            console.log("Raw tx: ", rawTx.serialize().toString('hex'));
-                            var txHash = await web3.eth.sendSignedTransaction(rawTx.serialize().toString('hex'));
-                            console.log(txHash);
-                        }).then(
-                            async function (){
-                                await transport.close();
-                        });
-            }).catch(
-                function(error) {
-                    console.log(error);
-                    if(error.message.contains('6a80') > -1) {
-                        console.log("- You are attempting to send a transaction that has data without first turning 'contract data' ON in your ledger settings (it's INSIDE THE LEDGER APP SETTINGS)");
-                    }
-                }
-            );
-    });
-}
+const send = async () => {
+    try{    
+        const transport = await Transport.create();
+        const eth = new AppEth(transport);
+        const result = await eth.getAddress(derivationPath);
 
+        const senderAddress = result.address;
+        const nonce = await getNonce(senderAddress);
+        const gasPrice = await getGasPrice();
+                    
+        console.log("Sender address: ", senderAddress);
+        console.log("To address: ", to);
+        console.log("Value: ", valueToSend);
+        console.log("Gas Price: ", gasPrice);
+        console.log("Nonce: ", nonce);
+        console.log("Gas: ", gas);        
+
+        let rawTx = buildTx(to, nonce, gas, gasPrice);
+        const signedTx = await eth.signTransaction(derivationPath, rawTx.serialize().toString('hex'));
+
+        rawTx.r = Buffer.from(signedTx.r, 'hex');
+        rawTx.v = Buffer.from(signedTx.v, 'hex');
+        rawTx.s = Buffer.from(signedTx.s, 'hex');
+        
+        console.log("Signed raw tx: ", rawTx.serialize().toString('hex'));
+        const txHash = await web3.eth.sendSignedTransaction(rawTx.serialize().toString('hex'));
+        console.log(txHash);
+    }
+    catch(err){
+        console.log(err);
+    }
+};
 
 (async () => {
     readConfig();
-    getWeb3();
+    getWeb3();    
     await send();
 })();
